@@ -1,24 +1,10 @@
-/**
- * INE Product Price Tracker - Observable Headed Scraper Runner
- *
- * Use this script to run the scraper in headed mode so its behavior can be watched
- * live on screen and recorded for the submission screen recording (2 to 4 minutes).
- *
- * Usage:
- *   npm run scrape:headed
- *   npm run scrape:headed -- https://demo.inelabteamdev.com/product/292
- */
-
 require("dotenv").config();
 const { scrapeProduct } = require("./productScraper");
 const supabase = require("../db/supabase");
 
 async function runHeaded() {
-    console.log("===============================================================");
-    console.log("   INE Product Price Tracker — Observable Headed Scraper Run   ");
-    console.log("===============================================================\n");
+    console.log("  Product Price Tracker ");
 
-    // Check if a specific URL was passed via CLI args
     const argUrl = process.argv[2];
     let targetUrls = [];
 
@@ -112,9 +98,7 @@ async function runHeaded() {
         }
     }
 
-    console.log("===============================================================");
     console.log("   Observable Headed Run Completed Successfully!               ");
-    console.log("===============================================================\n");
 }
 
 if (require.main === module) {

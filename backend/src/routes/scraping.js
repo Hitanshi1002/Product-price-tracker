@@ -10,10 +10,6 @@ const CRON_SECRET = process.env.CRON_SECRET || "";
 // Track last cron run in memory
 let lastCronRun = null;
 
-/**
- * Execute full scraping cycle across all active tracked products.
- * Handles retries, logs attempts honestly, and commits verified prices to price_history.
- */
 async function executeBatchScraping(options = {}) {
     const runStartedAt = new Date();
     const logger = options.logger || console.log;
@@ -52,7 +48,7 @@ async function executeBatchScraping(options = {}) {
         let successfulResult = null;
         let productAttempts = 0;
 
-        logger(`\n[Batch Scraper] --------------------------------------------------`);
+        logger(`\n[Batch Scraper] ----------------------------------------`);
         logger(`[Batch Scraper] Product: ${product.product_name} (${product.product_sku || "No SKU"})`);
         logger(`[Batch Scraper] URL:     ${product.product_url}`);
 
@@ -195,11 +191,6 @@ router.post("/all", async (req, res) => {
     }
 });
 
-/**
- * 2. EXTERNAL CRON TRIGGER
- * Used by cron-job.org or Vercel Cron every 2 hours.
- * Supports secret authorization via query (?secret=...) or header (x-cron-secret).
- */
 const handleCron = async (req, res) => {
     const providedSecret = req.headers["x-cron-secret"] || req.query.secret;
 

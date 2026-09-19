@@ -100,10 +100,8 @@ app.use((err, req, res, next) => {
 const PORT = process.env.PORT || 5000;
 
 app.listen(PORT, () => {
-    console.log(`===================================================`);
-    console.log(` INE Price Tracker API Server running on port ${PORT} `);
+    console.log(`Price Tracker API Server running on port ${PORT} `);
     console.log(` Health: http://localhost:${PORT}/api/health        `);
-    console.log(`===================================================`);
 });
 
 module.exports = app;

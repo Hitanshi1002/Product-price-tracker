@@ -6,17 +6,13 @@ const router = express.Router();
 
 const MOCK_STORE_URL = (process.env.MOCK_STORE_URL || "https://demo.inelabteamdev.com").replace(/\/$/, "");
 
-// In-memory catalog cache for sub-second search responses
 let catalogCache = {
     items: [],
     lastFetchedAt: 0
 };
 const CACHE_TTL_MS = 60 * 60 * 1000; // 1 hour
 
-/**
- * Fetch entire 1,000 product catalog from mock store API via parallel HTTP requests.
- * Uses lightweight HTTP fetching as specifically requested in the assignment guidelines.
- */
+
 async function getCatalog() {
     const now = Date.now();
     if (catalogCache.items.length > 0 && (now - catalogCache.lastFetchedAt) < CACHE_TTL_MS) {
@@ -26,7 +22,6 @@ async function getCatalog() {
     try {
         console.log("[Catalog] Fetching fresh catalog from mock store API...");
         const pageSize = 60;
-        // 1000 items total / 60 = ~17 pages
         const pages = Array.from({ length: 17 }, (_, i) => i + 1);
 
         const responses = await Promise.all(
@@ -34,8 +29,8 @@ async function getCatalog() {
                 fetch(`${MOCK_STORE_URL}/api/catalog?page=${page}&pageSize=${pageSize}`, {
                     headers: { "Accept": "application/json" }
                 })
-                .then(res => res.ok ? res.json() : { items: [] })
-                .catch(() => ({ items: [] }))
+                    .then(res => res.ok ? res.json() : { items: [] })
+                    .catch(() => ({ items: [] }))
             )
         );
 
@@ -55,17 +50,13 @@ async function getCatalog() {
             return allItems;
         }
 
-        return catalogCache.items; // Fallback to existing cache if fetch failed
+        return catalogCache.items;
     } catch (err) {
         console.error("[Catalog] Error fetching catalog:", err.message);
         return catalogCache.items;
     }
 }
 
-/**
- * 1. SEARCH PRODUCTS
- * Rapid partial/full name or SKU search over the mock store catalog.
- */
 router.get("/search", async (req, res) => {
     const query = (req.query.q || "").trim().toLowerCase();
 
@@ -84,7 +75,6 @@ router.get("/search", async (req, res) => {
             });
         }
 
-        // Return up to 30 matching products with full details and URLs
         const results = filtered.slice(0, 30).map(item => ({
             productId: item.id,
             productName: item.name,
@@ -110,10 +100,6 @@ router.get("/search", async (req, res) => {
     }
 });
 
-/**
- * 2. TRACK PRODUCT
- * Persist product in Supabase and kick off an immediate initial scrape.
- */
 router.post("/track", async (req, res) => {
     const { productName, productUrl, productSku } = req.body;
 
@@ -164,7 +150,6 @@ router.post("/track", async (req, res) => {
             trackedRecord = data;
         }
 
-        // Trigger immediate background scrape so user sees initial data right away
         triggerSingleProductScrape(trackedRecord).catch(err => {
             console.error(`Initial scrape failed for ${trackedRecord.product_name}:`, err.message);
         });
@@ -184,10 +169,6 @@ router.post("/track", async (req, res) => {
     }
 });
 
-/**
- * 3. GET TRACKED PRODUCTS
- * Returns all active products enriched with current price, previous price, trend, and last scrape time.
- */
 router.get("/tracked", async (req, res) => {
     try {
         const { data: products, error } = await supabase
@@ -256,11 +237,6 @@ router.get("/tracked", async (req, res) => {
     }
 });
 
-/**
- * 4. STORE LAYOUT CHANGE DETECTION (BONUS)
- * Detects whether the mock store layout or CSS classes have shifted.
- * Placed BEFORE /:id to prevent route shadowing.
- */
 router.get("/layout-status", async (req, res) => {
     try {
         const layoutRes = await fetch(`${MOCK_STORE_URL}/api/layout`, {
@@ -292,9 +268,7 @@ router.get("/layout-status", async (req, res) => {
     }
 });
 
-/**
- * 5. GET SINGLE PRODUCT
- */
+
 router.get("/:id", async (req, res) => {
     try {
         const { data, error } = await supabase
@@ -310,9 +284,6 @@ router.get("/:id", async (req, res) => {
     }
 });
 
-/**
- * 5. GET PRICE & STOCK HISTORY
- */
 router.get("/:id/history", async (req, res) => {
     try {
         const { data, error } = await supabase
@@ -333,9 +304,6 @@ router.get("/:id/history", async (req, res) => {
     }
 });
 
-/**
- * 6. GET HONEST SCRAPE LOGS
- */
 router.get("/:id/logs", async (req, res) => {
     try {
         const { data, error } = await supabase
@@ -357,9 +325,6 @@ router.get("/:id/logs", async (req, res) => {
     }
 });
 
-/**
- * 7. ON-DEMAND SCRAPE FOR A PRODUCT
- */
 router.post("/:id/scrape", async (req, res) => {
     try {
         const { data: product, error: findError } = await supabase
@@ -387,9 +352,6 @@ router.post("/:id/scrape", async (req, res) => {
     }
 });
 
-/**
- * 8. UNTRACK / DELETE PRODUCT
- */
 router.delete("/:id", async (req, res) => {
     try {
         const { error } = await supabase
@@ -410,9 +372,6 @@ router.delete("/:id", async (req, res) => {
 });
 
 
-/**
- * Helper to scrape a single product with full logging and Supabase insertion.
- */
 async function triggerSingleProductScrape(product, maxAttempts = 2) {
     let finalResult = null;
     let successful = false;

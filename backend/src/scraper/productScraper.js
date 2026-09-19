@@ -1,8 +1,5 @@
 const { chromium } = require("playwright");
 
-/**
- * Dismiss cookie consent banner if present on the mock storefront.
- */
 async function dismissCookiePopup(page) {
     const possibleButtons = [
         "Accept",
@@ -28,9 +25,6 @@ async function dismissCookiePopup(page) {
     return false;
 }
 
-/**
- * Extract INR price from text (e.g. ₹11,435 or ₹ 14,570).
- */
 function extractPrices(text) {
     const rawMatches = text.match(/₹\s*[\d,]+(?:\.\d{1,2})?/g) || [];
     const parsed = rawMatches.map(str => {
@@ -42,9 +36,6 @@ function extractPrices(text) {
         return { currentPrice: null, mrpPrice: null };
     }
 
-    // On the INE mock store, if multiple prices are shown (e.g. MRP ₹14,570 and Sale ₹11,435),
-    // the lower/sale price or current selling price is rendered.
-    // In the price block: [₹14,570, ₹11,435, 24% off] -> selling price is ₹11,435 or the first non-MRP price.
     let currentPrice = parsed[0];
     let mrpPrice = null;
 
@@ -61,10 +52,6 @@ function extractPrices(text) {
     return { currentPrice, mrpPrice };
 }
 
-/**
- * Extract stock status and quantity from text.
- * Examples: "IN STOCK · 190 LEFT", "ONLY 5 LEFT", "12 IN STOCK", "OUT OF STOCK".
- */
 function extractStock(text) {
     const quantityPatterns = [
         /(\d+)\s+left/i,
@@ -100,38 +87,21 @@ function extractStock(text) {
     return null;
 }
 
-/**
- * Extract store load attempts from message (e.g. "Loaded in 1 attempt" or "after 3 attempts").
- */
 function extractStoreAttempts(text) {
     const match = text.match(/(?:loaded in|after)\s+(\d+)\s+attempts?/i);
     return match ? Number(match[1]) : null;
 }
 
-/**
- * Extract discount percentage if present (e.g. "24% off").
- */
 function extractDiscount(text) {
     const match = text.match(/(\d+)%\s*off/i);
     return match ? Number(match[1]) : null;
 }
 
-/**
- * Extract seller name (e.g. "Sold by Cobblestone Supply").
- */
 function extractSeller(text) {
     const match = text.match(/Sold by\s+([^|\n·]+)/i);
     return match ? match[1].replace(/[\u200B-\u200D\uFEFF]/g, "").trim() : null;
 }
 
-/**
- * Scrape a product from the INE mock storefront with high reliability.
- * Handles mouse movement physics required by the storefront anti-bot Ar tracker,
- * waits for async price reveal, handles retryable failures, and extracts complete details.
- *
- * @param {string} productUrl - Full URL to product page (e.g. https://demo.inelabteamdev.com/product/292)
- * @param {object} options - Options { headless, slowMo, timeout, logger }
- */
 async function scrapeProduct(productUrl, options = {}) {
     const startTime = Date.now();
     const headless = options.headless !== undefined
@@ -189,9 +159,6 @@ async function scrapeProduct(productUrl, options = {}) {
             throw new Error("Price block container (.price-block) not found within timeout");
         }
 
-        // Satisfy storefront anti-bot requirement:
-        // Ar tracker requires: minMoves: 8, minDwellMs: 600
-        // Dispatch mousemove physics both via DOM events and Playwright cursor
         logger(`[Scraper] Performing human-like mouse dwell and movements over price block...`);
 
         const box = await priceBlock.boundingBox();
@@ -216,7 +183,6 @@ async function scrapeProduct(productUrl, options = {}) {
             }
         });
 
-        // Also perform small physical mouse movements with Playwright cursor
         if (box) {
             for (let i = 0; i < 8; i++) {
                 await page.waitForTimeout(70);
@@ -224,7 +190,7 @@ async function scrapeProduct(productUrl, options = {}) {
             }
         }
 
-        // Dwell > 600ms for Ar tracker requirement + React 250ms interval check
+
         await page.waitForTimeout(900);
 
         // Find Reveal Price button
